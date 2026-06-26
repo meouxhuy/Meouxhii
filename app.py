@@ -37,6 +37,34 @@ LINK_PATTERNS = [
 # ── Cancel flag registry: user_email -> threading.Event ──────────────
 SCAN_CANCEL_FLAGS: dict[str, threading.Event] = {}
 
+# ── Hàng đợi quét (Queue) ──────────────
+class FIFOLock:
+    def __init__(self):
+        self.waiters = []
+        self.lock = threading.Lock()
+        
+    def locked(self):
+        with self.lock:
+            return len(self.waiters) > 0
+            
+    def acquire(self):
+        me = threading.Event()
+        with self.lock:
+            self.waiters.append(me)
+            if len(self.waiters) == 1:
+                me.set()
+        me.wait()
+        
+    def release(self):
+        with self.lock:
+            if self.waiters:
+                self.waiters.pop(0)
+            if self.waiters:
+                self.waiters[0].set()
+
+scan_lock = FIFOLock()
+current_scanning_user = {"email": None, "username": None}
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -304,7 +332,9 @@ async def process_all_urls(urls, start_date, end_date, cancel_flag=None, progres
     
     headers = {
         "User-Agent": random.choice(user_agents),
-        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
+        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie": "PREF=hl=vi&gl=VN; YSC=meou_scan_magic; VISITOR_INFO1_LIVE=meou_scan_magic;",
+        "X-Forwarded-For": f"14.161.{random.randint(1,255)}.{random.randint(1,255)}" # Giả mạo IP VN (dải của VNPT)
     }
     
     connector = aiohttp.TCPConnector(limit=100)
@@ -385,7 +415,10 @@ async def process_all_urls(urls, start_date, end_date, cancel_flag=None, progres
 
 @app.route('/')
 @login_required
-def index(): return render_template('index.html', user=session['user'])
+def index():
+    username = session['user'].split('@')[0]
+    is_admin = session['user'] in ["meouscanv1@gmail.com", "thuuyen.nguyen@meou.com"]
+    return render_template('index.html', user=session['user'], username=username, is_admin=is_admin)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -432,7 +465,25 @@ def scan_links():
     progress_queue: queue.Queue = queue.Queue()
 
     def run_scan():
+        if scan_lock.locked():
+            # Đang có người khác chạy -> Báo đang chờ
+            waiting_for = current_scanning_user.get("username", "ai đó")
+            progress_queue.put({"type": "waiting", "waiting_for": waiting_for})
+        
+        # Dừng ở đây cho đến khi lấy được chìa khóa (hoặc block)
+        scan_lock.acquire()
         try:
+            # Nếu user đã ấn "Ngừng Quét" trong lúc đang xếp hàng
+            if cancel_flag.is_set():
+                progress_queue.put({"type": "result", "results": [], "channel_name": "Đã hủy xếp hàng", "cancelled": True})
+                return
+
+            current_scanning_user["email"] = user
+            current_scanning_user["username"] = user.split('@')[0]
+
+            # Gửi 1 event progress ảo để UI thoát khỏi trạng thái "Waiting"
+            progress_queue.put({"type": "progress", "done": 0, "total": 0})
+
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             scanned_results, final_channel_name = loop.run_until_complete(
@@ -449,6 +500,9 @@ def scan_links():
             print(f"Lỗi Scan: {e}")
             progress_queue.put({"type": "result", "results": [], "channel_name": "Lỗi", "cancelled": False})
         finally:
+            current_scanning_user["email"] = None
+            current_scanning_user["username"] = None
+            scan_lock.release()
             SCAN_CANCEL_FLAGS.pop(user, None)
             progress_queue.put(None)  # Sentinel để kết thúc SSE stream
 

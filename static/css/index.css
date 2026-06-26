@@ -349,7 +349,7 @@ height:20px;
 @keyframes slideDown{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
 .animate-slide-down{animation:slideDown 0.2s ease-out forwards}
 @keyframes fadeCycle{0%{opacity:0;transform:translateY(10px);filter:blur(5px)}10%{opacity:1;transform:translateY(0);filter:blur(0)}90%{opacity:1;transform:translateY(0);filter:blur(0)}100%{opacity:0;transform:translateY(-10px);filter:blur(5px)}}
-.loading-text-anim{animation:fadeCycle 3s infinite}
+.loading-text-anim{animation:fadeCycle 5s infinite}
 .flatpickr-calendar{
 background:var(--input-bg);
 border-radius:25px!important;
@@ -815,5 +815,12 @@ to {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmerDiag 4.4s linear infinite;
+}
+
+.waiting-text {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 

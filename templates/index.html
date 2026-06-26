@@ -14,7 +14,8 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <link rel="stylesheet" href="/static/css/index.css">
 </head>
-<body class="min-h-screen p-4 md:p-8 text-slate-700 relative">
+
+<body data-is-admin="{{ 'true' if is_admin else 'false' }}" class="min-h-screen text-slate-700 overflow-x-hidden relative flex flex-col xl:flex-row justify-between items-stretch p-4 md:p-6 xl:p-8 gap-6 xl:gap-8">
 <div class="mode-switch-overlay" id="modeSwitchOverlay">
 <div aria-label="Orange and tan hamster running in a metal wheel" role="img" class="wheel-and-hamster">
 <div class="wheel"></div>
@@ -36,12 +37,14 @@
 </div>
 </div>
 <div class="blur-dot"></div>
-<div class="blur-dot"></div>
-<div class="blur-dot"></div>
-<div class="blur-dot"></div>
-<div class="blur-dot"></div>
-<div class="fixed top-6 left-6 z-50 flex flex-col" style="gap:1cm">
-<button type="button" class="btn" id="modeToggle">
+<div id="meouAlert" class="hidden fixed top-10 left-1/2 -translate-x-1/2 z-[100] min-w-[320px] p-5 rounded-2xl shadow-2xl bg-meou-main text-white font-bold text-center animate-slide-in border border-white/30">
+<p id="alertMsg"></p>
+</div>
+
+<!-- LEFT COLUMN (Tools & Avatar) -->
+<div class="flex flex-col justify-between items-start shrink-0 z-50">
+  <div class="flex flex-col gap-4 xl:sticky xl:top-8">
+    <button type="button" class="btn" id="modeToggle">
 <strong id="modeText">SCAN TỪNG KÊNH</strong>
 <div id="container-stars">
 <div id="stars"></div>
@@ -51,6 +54,7 @@
 <div class="circle"></div>
 </div>
 </button>
+
 <!-- Thanh tiến trình realtime (SSE) -->
 <div id="scanProgressContainer" class="hidden" style="width:13rem">
   <div class="relative rounded-full overflow-hidden" style="height:32px;background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.12)">
@@ -60,42 +64,25 @@
           style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.25);letter-spacing:1px">0%</span>
   </div>
   <div style="margin-top:7px;text-align:center">
-    <span class="shimmer-text">Tiến Trình</span>
+    <span id="scanProgressLabel" class="shimmer-text">Tiến Trình</span>
   </div>
 </div>
+
+  </div>
+  <div class="hidden xl:block xl:sticky xl:bottom-8 mt-8">
+    
+<div class="flex items-center gap-3 p-1.5 pr-4 rounded-[30px] shadow-2xl border transition-all hover:scale-105 cursor-default" style="background:var(--card-bg);border-color:var(--border-color);backdrop-filter:blur(10px)">
+  <img src="/static/icons/icon128.png" class="w-10 h-10 rounded-full border-2 border-pink-300 shadow-sm object-cover" alt="Avatar">
+  <span class="font-extrabold text-sm tracking-wide text-indigo-500">{{ username }}</span>
 </div>
 
-<div class="fixed top-6 right-6 z-50 flex gap-3 items-center">
-<div class="theme-toggle" id="themeToggleTop">
-<div class="theme-toggle-slider">
-<svg id="sunIconTop" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-<path style="fill:#FFB655;" d="M256.014,124.121c-0.003,0-0.006,0-0.006,0c-72.718,0.005-131.879,59.162-131.879,131.877c0,72.716,59.161,131.877,131.879,131.88c0,0,0.003,0,0.006,0c72.715,0,131.873-59.161,131.873-131.88C387.887,183.28,328.729,124.121,256.014,124.121z"/>
-<path style="fill:#EEBF00;" d="M256,77.576c12.853,0,23.273-10.42,23.273-23.273v-31.03C279.273,10.42,268.853,0,256,0c-12.853,0-23.273,10.42-23.273,23.273v31.03C232.727,67.156,243.147,77.576,256,77.576z"/>
-<path style="fill:#EEBF00;" d="M256,512c12.853,0,23.273-10.42,23.273-23.273v-31.03c0-12.853-10.42-23.273-23.273-23.273c-12.853,0-23.273,10.42-23.273,23.273v31.03C232.727,501.58,243.147,512,256,512z"/>
-<path style="fill:#EEBF00;" d="M488.727,232.727h-31.03c-12.853,0-23.273,10.42-23.273,23.273c0,12.853,10.42,23.273,23.273,23.273h31.03C501.58,279.273,512,268.853,512,256C512,243.147,501.58,232.727,488.727,232.727z"/>
-<path style="fill:#EEBF00;" d="M23.273,279.273H54.3c12.853,0,23.273-10.42,23.273-23.273c0-12.853-10.42-23.273-23.273-23.273H23.273C10.42,232.727,0,243.147,0,256C0,268.853,10.42,279.273,23.273,279.273z"/>
-<path style="fill:#EEBF00;" d="M398.621,136.651c5.956,0,11.914-2.273,16.457-6.817l21.94-21.943c9.087-9.089,9.086-23.825-0.003-32.912c-9.087-9.087-23.824-9.087-32.912,0.002l-21.94,21.943c-9.087,9.089-9.086,23.825,0.003,32.912C386.71,134.38,392.665,136.651,398.621,136.651z"/>
-<path style="fill:#EEBF00;" d="M107.892,437.018l21.943-21.942c9.087-9.087,9.089-23.824,0.002-32.912c-9.089-9.089-23.824-9.089-32.914-0.002L74.98,404.105c-9.087,9.087-9.089,23.824-0.002,32.912c4.546,4.544,10.502,6.816,16.457,6.816C97.39,443.834,103.348,441.563,107.892,437.018z"/>
-<path style="fill:#EEBF00;" d="M415.078,382.165c-9.089-9.089-23.824-9.089-32.914-0.002c-9.087,9.087-9.089,23.823-0.002,32.912l21.94,21.942c4.546,4.544,10.502,6.816,16.457,6.816c5.955,0,11.913-2.271,16.455-6.816c9.087-9.087,9.089-23.824,0.002-32.912L415.078,382.165z"/>
-<path style="fill:#EEBF00;" d="M96.918,129.835c4.546,4.544,10.502,6.817,16.457,6.817s11.913-2.271,16.455-6.816c9.087-9.087,9.089-23.824,0.002-32.912l-21.938-21.943c-9.089-9.089-23.825-9.089-32.914,0c-9.087,9.089-9.089,23.824-0.002,32.912L96.918,129.835z"/>
-</svg>
-<svg id="moonIconTop" class="hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path opacity="0.5" fill-rule="evenodd" clip-rule="evenodd" d="M22 12.0004C22 17.5232 17.5228 22.0004 12 22.0004C10.8358 22.0004 9.71801 21.8014 8.67887 21.4357C8.24138 20.3772 8 19.217 8 18.0004C8 15.7792 8.80467 13.7459 10.1384 12.1762C11.31 13.8818 13.2744 15.0004 15.5 15.0004C17.8615 15.0004 19.9289 13.741 21.0672 11.8572C21.3065 11.4612 22 11.5377 22 12.0004Z" fill="#1C274C"/>
-<path d="M2 12C2 16.3586 4.78852 20.0659 8.67887 21.4353C8.24138 20.3768 8 19.2166 8 18C8 15.7788 8.80467 13.7455 10.1384 12.1758C9.42027 11.1303 9 9.86422 9 8.5C9 6.13845 10.2594 4.07105 12.1432 2.93276C12.5392 2.69347 12.4627 2 12 2C6.47715 2 2 6.47715 2 12Z" fill="#1C274C"/>
-</svg>
+  </div>
 </div>
-</div>
-<a href="/logout" class="p-3 rounded-2xl shadow-lg transition-all hover:scale-110 active:scale-95 group" style="background:var(--card-bg);border:2px solid var(--border-color)">
-<svg class="w-6 h-6 transition-colors" style="color:var(--text-accent)" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M2 6.5C2 4.01472 4.01472 2 6.5 2H12C14.2091 2 16 3.79086 16 6V7C16 7.55228 15.5523 8 15 8C14.4477 8 14 7.55228 14 7V6C14 4.89543 13.1046 4 12 4H6.5C5.11929 4 4 5.11929 4 6.5V17.5C4 18.8807 5.11929 20 6.5 20H12C13.1046 20 14 19.1046 14 18V17C14 16.4477 14.4477 16 15 16C15.5523 16 16 16.4477 16 17V18C16 20.2091 14.2091 22 12 22H6.5C4.01472 22 2 19.9853 2 17.5V6.5ZM18.2929 8.29289C18.6834 7.90237 19.3166 7.90237 19.7071 8.29289L22.7071 11.2929C23.0976 11.6834 23.0976 12.3166 22.7071 12.7071L19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071C17.9024 15.3166 17.9024 14.6834 18.2929 14.2929L19.5858 13L11 13C10.4477 13 10 12.5523 10 12C10 11.4477 10.4477 11 11 11L19.5858 11L18.2929 9.70711C17.9024 9.31658 17.9024 8.68342 18.2929 8.29289Z" fill="currentColor"/>
-</svg>
-</a>
-</div>
-<div id="meouAlert" class="hidden fixed top-10 left-1/2 -translate-x-1/2 z-[100] min-w-[320px] p-5 rounded-2xl shadow-2xl bg-meou-main text-white font-bold text-center animate-slide-in border border-white/30">
-<p id="alertMsg"></p>
-</div>
-<div class="max-w-7xl mx-auto rounded-card shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 md:p-12 border transition-all duration-500 glass-card relative z-10" style="background:var(--card-bg);border-color:var(--border-color)">
-<div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+
+<!-- CENTER COLUMN (Main Card) -->
+<div class="flex-1 w-full max-w-6xl mx-auto flex flex-col justify-start relative z-10">
+  <div class="w-full rounded-card shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-8 md:p-12 border transition-all duration-500 glass-card" style="background:var(--card-bg);border-color:var(--border-color)">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
 <div class="flex items-center gap-4">
 <img src="/static/icons/icon64.png" class="w-14 h-14 rounded-2xl shadow-sm" alt="MeoU Logo">
 <div>
@@ -212,6 +199,65 @@ Quét Ngay
 </table>
 </div>
 </div>
+  </div>
+</div>
+
+<!-- RIGHT COLUMN (Theme & Logout) -->
+<div class="flex flex-col justify-start items-end shrink-0 z-50">
+  <div class="flex gap-3 items-center xl:sticky xl:top-8">
+    <div class="theme-toggle" id="themeToggleTop">
+<div class="theme-toggle-slider">
+<svg id="sunIconTop" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path style="fill:#FFB655;" d="M256.014,124.121c-0.003,0-0.006,0-0.006,0c-72.718,0.005-131.879,59.162-131.879,131.877c0,72.716,59.161,131.877,131.879,131.88c0,0,0.003,0,0.006,0c72.715,0,131.873-59.161,131.873-131.88C387.887,183.28,328.729,124.121,256.014,124.121z"/>
+<path style="fill:#EEBF00;" d="M256,77.576c12.853,0,23.273-10.42,23.273-23.273v-31.03C279.273,10.42,268.853,0,256,0c-12.853,0-23.273,10.42-23.273,23.273v31.03C232.727,67.156,243.147,77.576,256,77.576z"/>
+<path style="fill:#EEBF00;" d="M256,512c12.853,0,23.273-10.42,23.273-23.273v-31.03c0-12.853-10.42-23.273-23.273-23.273c-12.853,0-23.273,10.42-23.273,23.273v31.03C232.727,501.58,243.147,512,256,512z"/>
+<path style="fill:#EEBF00;" d="M488.727,232.727h-31.03c-12.853,0-23.273,10.42-23.273,23.273c0,12.853,10.42,23.273,23.273,23.273h31.03C501.58,279.273,512,268.853,512,256C512,243.147,501.58,232.727,488.727,232.727z"/>
+<path style="fill:#EEBF00;" d="M23.273,279.273H54.3c12.853,0,23.273-10.42,23.273-23.273c0-12.853-10.42-23.273-23.273-23.273H23.273C10.42,232.727,0,243.147,0,256C0,268.853,10.42,279.273,23.273,279.273z"/>
+<path style="fill:#EEBF00;" d="M398.621,136.651c5.956,0,11.914-2.273,16.457-6.817l21.94-21.943c9.087-9.089,9.086-23.825-0.003-32.912c-9.087-9.087-23.824-9.087-32.912,0.002l-21.94,21.943c-9.087,9.089-9.086,23.825,0.003,32.912C386.71,134.38,392.665,136.651,398.621,136.651z"/>
+<path style="fill:#EEBF00;" d="M107.892,437.018l21.943-21.942c9.087-9.087,9.089-23.824,0.002-32.912c-9.089-9.089-23.824-9.089-32.914-0.002L74.98,404.105c-9.087,9.087-9.089,23.824-0.002,32.912c4.546,4.544,10.502,6.816,16.457,6.816C97.39,443.834,103.348,441.563,107.892,437.018z"/>
+<path style="fill:#EEBF00;" d="M415.078,382.165c-9.089-9.089-23.824-9.089-32.914-0.002c-9.087,9.087-9.089,23.823-0.002,32.912l21.94,21.942c4.546,4.544,10.502,6.816,16.457,6.816c5.955,0,11.913-2.271,16.455-6.816c9.087-9.087,9.089-23.824,0.002-32.912L415.078,382.165z"/>
+<path style="fill:#EEBF00;" d="M96.918,129.835c4.546,4.544,10.502,6.817,16.457,6.817s11.913-2.271,16.455-6.816c9.087-9.087,9.089-23.824,0.002-32.912l-21.938-21.943c-9.089-9.089-23.825-9.089-32.914,0c-9.087,9.089-9.089,23.824-0.002,32.912L96.918,129.835z"/>
+</svg>
+<svg id="moonIconTop" class="hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.5" fill-rule="evenodd" clip-rule="evenodd" d="M22 12.0004C22 17.5232 17.5228 22.0004 12 22.0004C10.8358 22.0004 9.71801 21.8014 8.67887 21.4357C8.24138 20.3772 8 19.217 8 18.0004C8 15.7792 8.80467 13.7459 10.1384 12.1762C11.31 13.8818 13.2744 15.0004 15.5 15.0004C17.8615 15.0004 19.9289 13.741 21.0672 11.8572C21.3065 11.4612 22 11.5377 22 12.0004Z" fill="#1C274C"/>
+<path d="M2 12C2 16.3586 4.78852 20.0659 8.67887 21.4353C8.24138 20.3768 8 19.2166 8 18C8 15.7788 8.80467 13.7455 10.1384 12.1758C9.42027 11.1303 9 9.86422 9 8.5C9 6.13845 10.2594 4.07105 12.1432 2.93276C12.5392 2.69347 12.4627 2 12 2C6.47715 2 2 6.47715 2 12Z" fill="#1C274C"/>
+</svg>
+</div>
+</div>
+<a href="/logout" class="p-3 rounded-2xl shadow-lg transition-all hover:scale-110 active:scale-95 group" style="background:var(--card-bg);border:2px solid var(--border-color)">
+<svg class="w-6 h-6 transition-colors" style="color:var(--text-accent)" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M2 6.5C2 4.01472 4.01472 2 6.5 2H12C14.2091 2 16 3.79086 16 6V7C16 7.55228 15.5523 8 15 8C14.4477 8 14 7.55228 14 7V6C14 4.89543 13.1046 4 12 4H6.5C5.11929 4 4 5.11929 4 6.5V17.5C4 18.8807 5.11929 20 6.5 20H12C13.1046 20 14 19.1046 14 18V17C14 16.4477 14.4477 16 15 16C15.5523 16 16 16.4477 16 17V18C16 20.2091 14.2091 22 12 22H6.5C4.01472 22 2 19.9853 2 17.5V6.5ZM18.2929 8.29289C18.6834 7.90237 19.3166 7.90237 19.7071 8.29289L22.7071 11.2929C23.0976 11.6834 23.0976 12.3166 22.7071 12.7071L19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071C17.9024 15.3166 17.9024 14.6834 18.2929 14.2929L19.5858 13L11 13C10.4477 13 10 12.5523 10 12C10 11.4477 10.4477 11 11 11L19.5858 11L18.2929 9.70711C17.9024 9.31658 17.9024 8.68342 18.2929 8.29289Z" fill="currentColor"/>
+</svg>
+</a>
+  </div>
+</div>
+
+<!-- MOBILE AVATAR (Visible only on small screens) -->
+<div class="block xl:hidden w-full flex justify-center mt-4">
+  
+<div class="flex items-center gap-3 p-1.5 pr-4 rounded-[30px] shadow-2xl border transition-all hover:scale-105 cursor-default" style="background:var(--card-bg);border-color:var(--border-color);backdrop-filter:blur(10px)">
+  <img src="/static/icons/icon128.png" class="w-10 h-10 rounded-full border-2 border-pink-300 shadow-sm object-cover" alt="Avatar">
+  <span class="font-extrabold text-sm tracking-wide text-indigo-500">{{ username }}</span>
+</div>
+
+</div>
+
+<div id="permissionDeniedOverlay" class="hidden fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-md bg-black/40 transition-opacity duration-300 opacity-0">
+  <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-2 border-red-100 transform scale-95 transition-transform duration-300">
+    <div class="w-20 h-20 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-6">
+      <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    </div>
+    <h3 class="text-2xl font-black text-slate-800 mb-2">Truy Cập Bị Từ Chối</h3>
+    <p class="text-slate-500 font-bold">Tính năng này không khả dụng trên tài khoản của bạn</p>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="/static/js/messages.js"></script>
 <script src="/static/js/index.js"></script>
 </body>
 </html>

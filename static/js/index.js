@@ -39,8 +39,15 @@ async function sendCancelToServer() {
 function showProgressBarImmediate() {
   // Hiện ngay lập tức khi bắt đầu scan, trước khi có SSE event
   document.getElementById('scanProgressContainer').classList.remove('hidden');
-  document.getElementById('scanProgressFill').style.width = '0%';
+  const fill = document.getElementById('scanProgressFill');
+  fill.style.width = '0%';
+  fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
   document.getElementById('scanProgressText').textContent = '...';
+  const label = document.getElementById('scanProgressLabel');
+  if (label) {
+    label.textContent = 'Tiến Trình';
+    label.className = 'shimmer-text';
+  }
 }
 
 function updateProgressBar(done, total) {
@@ -59,60 +66,7 @@ function updateProgressBar(done, total) {
   text.textContent = percent + '%';
 }
 
-// ─── Loading messages ─────────────────────────────────────────
-const loadingMessages = [
-  "Một Người Ấn Độ Nổi Tiếng Từng Nói: काम का ना काज का, दुश्मन अनाज का",
-  "Họ Im Lặng Vì Tưởng Tôi Hiểu... Tôi Im Lặng Vì Tôi Méo Hiểu Gì...😶‍🌫️",
-  "Nếu không có gì thay đổi, hết hôm nay sẽ đến ngày mai.",
-  "Muốn có chỗ đứng trong xã hội thì tuyệt đối không được ngồi.",
-  "Chơi Gì Cũng Ngu... Chơi Ngu Là Giỏi...😎",
-  "Định Buồn Mà Làm Biếng Quá...",
-  "Ở Cái Tuổi Người Ta Đau Khổ Vì Tình. Còn Tôi Thì Đau Lưng...😭",
-  "Bạn Có Biết Cứ 60s Trôi Qua Ở Việt Nam Thì Ở Nhật Cũng Thế",
-  "Bạn Ạ! Nắng Chiếu Tới Ai Thì Người Đó Đen...",
-  "Nếu Chưa Biết Tôi Xin Đừng Đánh Giá. Còn Nếu Biết Tôi Rồi Thì Đừng Đánh Tôi...😌",
-  "Sao Ai Cũng Ghét Mấy Người Làm Biếng Nhỉ? Họ Có Làm Gì Đâu?",
-  "Một Cây Làm Chẳng Nên Non, Ba Cây Chụm Lại Vẫn Là Ba Cây.",
-  "Muốn Đi Riêng Thì Đi Một Mình, Muốn Đi Chung Thì Đi Cùng Nhau.",
-  "Bạn Có Biết: Không Có Gì Là Nothing.",
-  "Má Hay Quá, Đang Vỗ Tay Phải Đứng Dậy Ỉa.",
-  "Tự hào vì 20 tuổi em đã có mọi thứ trong tay, từ thứ Hai đến Chủ nhật.",
-  "Ngủ sớm đi, ngủ muộn hại lắm. Hại điện thoại.",
-  "Trông em vui vẻ thế thôi chứ em chả biết buồn bao giờ.",
-  "Nhìn mặt em khó ưa vậy thôi, chứ tính cách em cũng không được dễ chịu cho lắm.",
-  "Thời tiết này là gì cũng thích. Thích nhất là không làm gì.",
-  "Dịu dàng em không thiếu, chủ yếu là em thích cà chớn!",
-  "Đó giờ giận ai ít khi để trong lòng lắm, để trong đầu.",
-  "Nhịn chưa chắc đã nhục nhưng nhịn chắc chắn sẽ đói.",
-  "Cách duy nhất để thấu hiểu lòng người là… nội soi.",
-  "Cái gì của mình thì sẽ là của mình. Cái gì không phải của mình thì là của người ta.",
-  "Đời này có hai loại người. Người này và người kia.",
-  "Trời ban cho nhan sắc. Những lại lấy đi tất cả những người công nhận nhan sắc này.",
-  "Kiếp sau nguyện làm người giàu, quyết không hối tiếc.",
-  "Không có thứ gì quá khó, khó quá thì không làm nữa là xong.",
-  "Nhìn em ổn áp, nhưng không có app thì không ổn.",
-  "Hai mùi dễ chịu nhất trái đất là mùi đồ ăn và mùi tiền.",
-  "Tập sống lạnh lùng vì không thể khùng khùng mãi được.",
-  "Tự nhiên buồn quá, chắc tại mình đang buồn.",
-  "Học cách giữ một cái đầu lạnh. Vì nóng là bị sốt rồi.",
-  "Lúc nhỏ thích nghịch đất, nghịch cát. Lớn lên toàn gặp nghịch cảnh.",
-  "Con đường làm giàu em đi sắp tới, chỉ còn thiếu chữ 'u' thôi.",
-  "Định nghèo chơi chơi thôi, ai ngờ nghèo đậm sâu, nghèo không lối thoát.",
-  "Còn bé cứ nghĩ tiền là tất cả. Lớn mới thấy mình khôn từ bé.",
-  "20 nồi bánh chưng mà chưa thấy hoa tươi, chỉ thấy hoa mắt, chóng mặt, đau đầu.",
-  "Lười không tự sinh ra cũng không tự mất đi. Nó chỉ chuyển từ ngày này sang ngày khác.",
-  "Khi bạn cho đi một thứ gì đó, bạn sẽ mất luôn nó.",
-  "Nhìn em có vẻ nghèo, thật ra bên trong cũng nghèo thật.",
-  "Em đã có chồng… chồng bát chưa rửa trong bếp.",
-  "Tại sao chữ 'dài' lại ngắn hơn chữ 'ngắn'?",
-  "Đề bài yêu cầu 'chọn câu sai'. Tại sao chọn câu sai vẫn bị trừ điểm?",
-  "Mẹ tròn con vuông vậy bố hình gì?",
-  "'Đầy chỗ ngồi' là còn nhiều chỗ ngồi hay hết chỗ ngồi?",
-  "Bệnh vô sinh có di truyền không?",
-  "Chiến thắng bản thân thì mình thắng hay là thua?",
-  "'Gây khó dễ' là gây khó hay gây dễ?",
-  "Trái cam được đặt tên theo màu cam hay màu cam được đặt tên theo trái cam?"
-];
+// ─── Loading messages (Đã chuyển sang file messages.js) ─────────────────
 
 // ─── Flatpickr ────────────────────────────────────────────────
 const fpkConfig = {
@@ -289,6 +243,22 @@ function createStarBurst(x, y) {
 }
 
 modeToggle.addEventListener('click', (e) => {
+  const isAdmin = document.body.getAttribute('data-is-admin') === 'true';
+  if (!isAdmin) {
+    const deniedOverlay = document.getElementById('permissionDeniedOverlay');
+    deniedOverlay.classList.remove('hidden');
+    setTimeout(() => {
+      deniedOverlay.classList.remove('opacity-0');
+      deniedOverlay.firstElementChild.classList.remove('scale-95');
+    }, 10);
+    setTimeout(() => {
+      deniedOverlay.classList.add('opacity-0');
+      deniedOverlay.firstElementChild.classList.add('scale-95');
+      setTimeout(() => deniedOverlay.classList.add('hidden'), 300);
+    }, 3000);
+    return;
+  }
+  
   const overlay = document.getElementById('modeSwitchOverlay');
   overlay.classList.add('active');
   setTimeout(() => {
@@ -387,10 +357,15 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   const lD = document.getElementById('loading');
   const lT = document.getElementById('loadingText');
   lD.classList.remove('hidden');
-  let mi = 0;
+  let mi = Math.floor(Math.random() * loadingMessages.length);
   lT.innerText = loadingMessages[mi];
   if (loadingInterval) clearInterval(loadingInterval);
-  loadingInterval = setInterval(() => { mi = (mi + 1) % loadingMessages.length; lT.innerText = loadingMessages[mi]; }, 3000);
+  loadingInterval = setInterval(() => { 
+    let newMi;
+    do { newMi = Math.floor(Math.random() * loadingMessages.length); } while (newMi === mi);
+    mi = newMi;
+    lT.innerText = loadingMessages[mi]; 
+  }, 5000);
 
   document.getElementById('resultTableBody').innerHTML = '';
   document.getElementById('exportBtn').classList.add('hidden');
@@ -430,7 +405,25 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
         if (!line.startsWith('data: ')) continue;
         try {
           const data = JSON.parse(line.slice(6));
-          if (data.type === 'progress') {
+          if (data.type === 'waiting') {
+            document.getElementById('scanProgressContainer').classList.remove('hidden');
+            const fill = document.getElementById('scanProgressFill');
+            fill.style.width = '100%';
+            fill.style.background = 'linear-gradient(90deg, #fbbf24, #f59e0b)';
+            document.getElementById('scanProgressText').textContent = 'Xếp hàng...';
+            const label = document.getElementById('scanProgressLabel');
+            if (label) {
+              label.innerHTML = `Đang chờ <span style="color:#fbbf24">${data.waiting_for}</span> hoàn tất...`;
+              label.className = 'waiting-text';
+            }
+          } else if (data.type === 'progress') {
+            const fill = document.getElementById('scanProgressFill');
+            const label = document.getElementById('scanProgressLabel');
+            if (label && label.className === 'waiting-text') {
+               fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
+               label.innerHTML = 'Tiến Trình';
+               label.className = 'shimmer-text';
+            }
             updateProgressBar(data.done, data.total);
           } else if (data.type === 'result') {
             currentData = data;
@@ -498,17 +491,4 @@ themeToggle.addEventListener('click', () => {
   }
 });
 
-// ─── Block DevTools ───────────────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key === 'U')) {
-    e.preventDefault();
-    return false;
-  }
-});
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-setInterval(() => {
-  const devtools = window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160;
-  if (devtools) {
-    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;font-size:24px;font-weight:bold;color:#ff0000;">DevTools Detected! Please close it.</div>';
-  }
-}, 1000);
+
