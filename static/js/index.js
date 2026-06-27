@@ -11,20 +11,20 @@ function setScanningState(scanning) {
   const btn = document.getElementById('scanBtn');
   if (scanning) {
     btn.innerHTML = `
-      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="scan-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
       </svg>
-      Ngừng Quét`;
-    btn.classList.remove('bg-meou-main');
-    btn.classList.add('bg-red-500', 'hover:bg-red-600');
+      <span class="scan-lbl">Ngừng Quét</span>`;
+    btn.classList.add('is-scanning');
   } else {
     btn.innerHTML = `
-      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      <span class="scan-pulse" aria-hidden="true"></span>
+      <svg class="scan-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" stroke-width="2.5"/>
+        <path d="m20 20-3-3" stroke-linecap="round" stroke-width="2.5"/>
       </svg>
-      Quét Ngay`;
-    btn.classList.add('bg-meou-main');
-    btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+      <span class="scan-lbl">Quét Ngay</span>`;
+    btn.classList.remove('is-scanning');
   }
 }
 
@@ -37,29 +37,46 @@ async function sendCancelToServer() {
 
 // ─── Thanh tiến trình ─────────────────────────────────────────
 function showProgressBarImmediate() {
-  // Hiện ngay lập tức khi bắt đầu scan, trước khi có SSE event
-  document.getElementById('scanProgressContainer').classList.remove('hidden');
+  // Hiện trạng thái "Đang kết nối..." ngay khi bấm scan
+  const container = document.getElementById('scanProgressContainer');
   const fill = document.getElementById('scanProgressFill');
-  fill.style.width = '0%';
-  fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
-  document.getElementById('scanProgressText').textContent = '...';
+  const text = document.getElementById('scanProgressText');
   const label = document.getElementById('scanProgressLabel');
+  container.classList.remove('hidden');
+  fill.style.width = '0%';
+  fill.style.background = 'linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8)';
+  fill.style.backgroundSize = '200% auto';
+  fill.style.animation = 'progressPulse 1.6s linear infinite';
+  text.textContent = '...';
   if (label) {
-    label.textContent = 'Tiến Trình';
+    label.textContent = 'Đang kết nối Google Server...';
     label.className = 'shimmer-text';
   }
+}
+
+function hideProgressBar() {
+  const container = document.getElementById('scanProgressContainer');
+  const fill = document.getElementById('scanProgressFill');
+  const text = document.getElementById('scanProgressText');
+  const label = document.getElementById('scanProgressLabel');
+  fill.style.animation = '';
+  fill.style.backgroundSize = '';
+  fill.style.width = '0%';
+  text.textContent = '0%';
+  if (label) { label.textContent = 'Tiến Trình'; label.className = 'shimmer-text'; }
+  container.classList.add('hidden');
 }
 
 function updateProgressBar(done, total) {
   const container = document.getElementById('scanProgressContainer');
   const fill = document.getElementById('scanProgressFill');
   const text = document.getElementById('scanProgressText');
-  if (total === 0) {
-    container.classList.add('hidden');
-    fill.style.width = '0%';
-    text.textContent = '0%';
-    return;
-  }
+  // total=0 means real data not yet available — keep connecting state, don’t hide
+  if (total === 0) return;
+  // Reset pulse animation when real progress starts
+  fill.style.animation = '';
+  fill.style.backgroundSize = '';
+  fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
   container.classList.remove('hidden');
   const percent = Math.round((done / total) * 100);
   fill.style.width = percent + '%';
@@ -68,17 +85,50 @@ function updateProgressBar(done, total) {
 
 // ─── Loading messages (Đã chuyển sang file messages.js) ─────────────────
 
-// ─── Flatpickr ────────────────────────────────────────────────
-const fpkConfig = {
-  locale: "vn",
-  dateFormat: "Y-m-d",
-  altInput: true,
-  altFormat: "d/m/Y",
-  maxDate: "today",
-  disableMobile: "true"
+// ─── Air Datepicker ───────────────────────────────────────────
+const viLocale = {
+  days: ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'],
+  daysShort: ['CN','T2','T3','T4','T5','T6','T7'],
+  daysMin: ['CN','T2','T3','T4','T5','T6','T7'],
+  months: ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'],
+  monthsShort: ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'],
+  today: 'Hôm nay', clear: 'Xóa', dateFormat: 'dd/MM/yyyy', timeFormat: 'HH:mm',
+  firstDay: 1
 };
-const startPicker = flatpickr("#startDate", { ...fpkConfig, onChange: (d, str) => endPicker.set("minDate", str) });
-const endPicker = flatpickr("#endDate", fpkConfig);
+
+let startDateVal = '', endDateVal = '';
+
+const startPicker = new AirDatepicker('#startDate', {
+  locale: viLocale,
+  maxDate: new Date(),
+  dateFormat: 'dd/MM/yyyy',
+  autoClose: true,
+  onSelect({ date }) {
+    if (!date) { startDateVal = ''; endPicker.update({ minDate: false }); return; }
+    const d = date instanceof Date ? date : date[0];
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    startDateVal = `${y}-${m}-${day}`;
+    endPicker.update({ minDate: d });
+  }
+});
+
+const endPicker = new AirDatepicker('#endDate', {
+  locale: viLocale,
+  maxDate: new Date(),
+  dateFormat: 'dd/MM/yyyy',
+  autoClose: true,
+  onSelect({ date }) {
+    if (!date) { endDateVal = ''; startPicker.update({ maxDate: new Date() }); return; }
+    const d = date instanceof Date ? date : date[0];
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    endDateVal = `${y}-${m}-${day}`;
+    startPicker.update({ maxDate: d });
+  }
+});
+
+// Patch để index.js vẫn đọc được value qua #startDate / #endDate
+Object.defineProperty(document.getElementById('startDate'), '_airVal', { get: () => startDateVal, configurable: true });
+Object.defineProperty(document.getElementById('endDate'),   '_airVal', { get: () => endDateVal,   configurable: true });
 
 // ─── Alert ────────────────────────────────────────────────────
 function showMeoUAlert(m) {
@@ -90,37 +140,47 @@ function showMeoUAlert(m) {
 
 // ─── Excel Export ─────────────────────────────────────────────
 function exportToExcelCore(arr, f) {
-  const rows = [["Ngày Đăng", "Channel Name", "Link YouTube", "Loại Video", "Có Gắn Giỏ Hàng?", "Tổng SP Shopee", "Tổng SP Lazada", "Link SP", "SP Thuộc", "TỔNG SP Khác"]];
+  const rows = [["Tháng", "Ngày Đăng", "Channel Name", "Link YouTube", "Loại Video", "Có Gắn Giỏ Hàng?", "Tổng SP Shopee", "Tổng SP Lazada", "Link SP", "SP Thuộc", "TỔNG SP Khác"]];
   const st = {
     alignment: { vertical: 'center', horizontal: 'center' },
     border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
   };
+
+  // Helper: "dd/mm/yyyy" → "mm/dd/yyyy" và lấy số tháng
+  function reformatDate(ddmmyyyy) {
+    const [dd, mm, yyyy] = ddmmyyyy.split('/');
+    return { formatted: `${mm}/${dd}/${yyyy}`, month: String(parseInt(mm, 10)) };
+  }
+
   arr.forEach(d => {
     d.results.forEach(v => {
+      const { formatted, month } = reformatDate(v.display_date);
       let tl = v.shopping_links.filter(i => i.platform === 'Shopee' || i.platform === 'Lazada');
       if (tl.length > 0) {
-        tl.forEach(l => { rows.push([v.display_date, v.channel_name, v.url, v.type, v.has_shopping ? "Có" : "Không", v.shopee_count, v.lazada_count, l.clean_url, l.platform, v.other_count]); });
+        tl.forEach(l => { rows.push([month, formatted, v.channel_name, v.url, v.type, v.has_shopping ? "Có" : "Không", v.shopee_count, v.lazada_count, l.clean_url, l.platform, v.other_count]); });
       } else if (v.other_count > 0) {
-        rows.push([v.display_date, v.channel_name, v.url, v.type, "Có", v.shopee_count, v.lazada_count, "", "Sàn Khác", v.other_count]);
+        rows.push([month, formatted, v.channel_name, v.url, v.type, "Có", v.shopee_count, v.lazada_count, "", "Sàn Khác", v.other_count]);
       } else {
-        rows.push([v.display_date, v.channel_name, v.url, v.type, "Không", v.shopee_count, v.lazada_count, "", "", v.other_count]);
+        rows.push([month, formatted, v.channel_name, v.url, v.type, "Không", v.shopee_count, v.lazada_count, "", "", v.other_count]);
       }
     });
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 60 }, { wch: 12 }, { wch: 18 }];
+  // col widths: Tháng, Ngày, Channel, Link YT, Loại, Giỏ, Shopee, Lazada, Link SP, SP Thuộc, Khác
+  ws['!cols'] = [{ wch: 16 }, { wch: 14 }, { wch: 25 }, { wch: 35 }, { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 60 }, { wch: 12 }, { wch: 18 }];
   for (let c in ws) {
     if (c[0] === '!') continue;
     let r = XLSX.utils.decode_cell(c);
     let v = ws[c].v;
-    let s = JSON.parse(JSON.stringify(st));
+    let s = structuredClone(st);
     if (r.r === 0) {
       s.fill = { fgColor: { rgb: "002060" } };
       s.font = { bold: true, color: { rgb: "FFFFFF" } };
     } else {
-      if (r.c === 2 || r.c === 7) s.alignment.horizontal = 'left';
-      if (r.c === 4) s.font = { bold: true, color: { rgb: v === "Có" ? "00B050" : "FF0000" } };
-      if (r.c === 8) {
+      if (r.c === 0) s.font = { bold: true, color: { rgb: "5271C4" } }; // Tháng
+      if (r.c === 3 || r.c === 8) s.alignment.horizontal = 'left';  // Link YT / Link SP
+      if (r.c === 5) s.font = { bold: true, color: { rgb: v === "Có" ? "00B050" : "FF0000" } }; // Giỏ hàng
+      if (r.c === 9) {
         if (v === "Shopee") s.font = { bold: true, color: { rgb: "FF8C00" } };
         else if (v === "Lazada") s.font = { bold: true, color: { rgb: "FF1493" } };
       }
@@ -131,6 +191,7 @@ function exportToExcelCore(arr, f) {
   XLSX.utils.book_append_sheet(wb, ws, "MeoU");
   XLSX.writeFile(wb, f);
 }
+
 
 // ─── Archive / Temporary Storage ──────────────────────────────
 function updateArchiveUI() {
@@ -144,14 +205,20 @@ function updateArchiveUI() {
   }
   c.classList.remove('hidden');
   b.innerText = temporaryStorage.length;
-  l.innerHTML = '';
+  // Dùng DocumentFragment thay vì innerHTML += để tránh reflow tích lũy mỗi vòng lặp
+  const fragment = document.createDocumentFragment();
   temporaryStorage.forEach((item, i) => {
     let n = item.channel_name.length > 20 ? item.channel_name.substring(0, 18) + '...' : item.channel_name;
-    l.innerHTML += `<li class="flex justify-between items-center p-2 hover:bg-indigo-50 rounded-xl mb-1 border border-transparent hover:border-indigo-100 transition-colors"><span class="text-sm font-bold text-slate-600 truncate mr-2">${n}</span><div class="flex gap-1">
+    const li = document.createElement('li');
+    li.className = 'flex justify-between items-center p-2 hover:bg-indigo-50 rounded-xl mb-1 border border-transparent hover:border-indigo-100 transition-colors';
+    li.innerHTML = `<span class="text-sm font-bold text-slate-600 truncate mr-2">${n}</span><div class="flex gap-1">
 <button onclick="downloadSingleFile(${i})" class="p-1.5 bg-blue-50 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
 <button onclick="deleteSingleFile(${i})" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-</div></li>`;
+</div>`;
+    fragment.appendChild(li);
   });
+  l.innerHTML = '';
+  l.appendChild(fragment);
 }
 
 window.downloadSingleFile = (i) => {
@@ -215,7 +282,12 @@ function autoResizeTextarea() {
   linksInput.style.height = linksInput.scrollHeight + 'px';
 }
 
-linksInput.addEventListener('input', autoResizeTextarea);
+// Debounce để tránh layout reflow (scrollHeight) mỗi keystroke
+let _resizeTimer;
+linksInput.addEventListener('input', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(autoResizeTextarea, 50);
+});
 
 linksInput.addEventListener('keydown', (e) => {
   if (!isBatchMode && e.key === 'Enter') {
@@ -235,15 +307,19 @@ function createStarBurst(x, y) {
     const endY = y + Math.sin(angle * Math.PI / 180) * distance;
     star.style.left = x + 'px';
     star.style.top = y + 'px';
-    star.style.setProperty('--end-x', endX + 'px');
-    star.style.setProperty('--end-y', endY + 'px');
+    // Dùng delta (--dx, --dy) thay vì vị trí tuyệt đối để CSS animation hoạt động đúng
+    star.style.setProperty('--dx', (endX - x) + 'px');
+    star.style.setProperty('--dy', (endY - y) + 'px');
     document.body.appendChild(star);
     setTimeout(() => star.remove(), 600);
   }
 }
 
 modeToggle.addEventListener('click', (e) => {
-  
+  if (isScanning) {
+    showMeoUAlert('Không thể chuyển chế độ khi đang quét!');
+    return;
+  }
   const overlay = document.getElementById('modeSwitchOverlay');
   overlay.classList.add('active');
   setTimeout(() => {
@@ -255,7 +331,7 @@ modeToggle.addEventListener('click', (e) => {
     modeToggle.classList.toggle('batch-mode');
     if (isBatchMode) {
       modeText.textContent = 'SCAN NHIỀU KÊNH';
-      linksInput.placeholder = 'Dán link kênh vào đây (tối đa 100 kênh, mỗi kênh 1 dòng)...';
+      linksInput.placeholder = 'Dán link kênh vào đây (tối đa 10 kênh, mỗi kênh 1 dòng)...';
     } else {
       modeText.textContent = 'SCAN TỪNG KÊNH';
       linksInput.placeholder = 'Dán link kênh vào đây...';
@@ -270,52 +346,69 @@ autoResizeTextarea();
 
 // ─── Batch Progress (số kênh) ─────────────────────────────────
 function updateBatchProgress(current, total) {
-  const container = document.getElementById('batchLoadingContainer');
-  const percentEl = document.getElementById('batchLoadingPercent');
-  const textEl = document.getElementById('batchLoadingText');
-  if (total > 1) {
-    const percent = Math.round((current / total) * 100);
-    container.classList.remove('hidden');
-    percentEl.textContent = percent + '%';
-    textEl.textContent = `Đang scan kênh ${current}/${total}`;
-  } else {
-    container.classList.add('hidden');
+  const container = document.getElementById('scanProgressContainer');
+  const percentEl = document.getElementById('scanProgressText');
+  const fillEl = document.getElementById('scanProgressFill');
+  const labelEl = document.getElementById('scanProgressLabel');
+  // total=0 means real data not yet available — keep connecting state, don’t hide
+  if (total === 0) return;
+  // Reset pulse animation when real progress starts
+  if (fillEl) {
+    fillEl.style.animation = '';
+    fillEl.style.backgroundSize = '';
+    fillEl.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
   }
+  const percent = Math.round((current / total) * 100);
+  container.classList.remove('hidden');
+  percentEl.textContent = percent + '%';
+  if (fillEl) fillEl.style.width = percent + '%';
+  if (labelEl && isBatchMode) labelEl.textContent = `Tiến Trình`;
+}
+
+// ─── Helper functions cho renderResults ──────────────────────
+function buildTypeClass(type) {
+  if (type === 'Short') return 'text-pink-500';
+  if (type === 'Stream') return 'text-purple-600';
+  return 'text-blue-500';
+}
+
+function buildShoppingBadge(has_shopping) {
+  return has_shopping
+    ? '<span class="text-emerald-500 font-extrabold text-lg">Có</span>'
+    : '<span class="text-slate-300">Không</span>';
+}
+
+function buildLinkCell(r) {
+  if (!r.has_shopping) return '<span class="text-slate-300">Trống</span>';
+  const tl = r.shopping_links.filter(i => i.platform === 'Shopee' || i.platform === 'Lazada');
+  if (tl.length > 0) {
+    const items = tl.map(i => {
+      const bc = i.platform === 'Shopee'
+        ? 'text-orange-500 bg-orange-50 border-orange-200'
+        : 'text-blue-600 bg-blue-50 border-blue-200';
+      return `<li class="mb-2 text-[13px] border-b border-indigo-50 pb-2 flex items-center gap-2"><span class="font-extrabold text-[10px] uppercase px-2 py-1 rounded border ${bc}">${i.platform}</span><a href="${i.clean_url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 truncate block w-full">${i.clean_url}</a></li>`;
+    }).join('');
+    return `<div class="px-6 py-2"><button class="toggle-btn w-full bg-indigo-50 text-indigo-600 font-extrabold py-3 px-4 rounded-2xl border border-indigo-100 text-xs shadow-sm">Giỏ hàng: ${tl.length} SP ▼</button><ul class="link-list hidden mt-3 p-5 bg-white rounded-2xl border border-indigo-100 text-left custom-scrollbar overflow-y-auto max-h-48 shadow-xl">${items}</ul></div>`;
+  }
+  return `<span class="text-slate-400 text-sm font-medium">${r.other_count} Sản phẩm khác</span>`;
 }
 
 // ─── Hàm render rows kết quả ─────────────────────────────────
 function renderResults(results) {
+  // Ẩn empty state khi có kết quả
+  document.getElementById('emptyState')?.classList.add('hidden');
   const tb = document.getElementById('resultTableBody');
-  tb.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   results.forEach(r => {
     const tr = document.createElement('tr');
-    tr.className = "border-b border-indigo-50 hover:bg-indigo-50/20 transition-all";
-    let tc = r.type === 'Short' ? 'text-pink-500' : (r.type === 'Stream' ? 'text-purple-600' : 'text-blue-500');
-    let sh = r.has_shopping
-      ? '<span class="text-emerald-500 font-extrabold text-lg">Có</span>'
-      : '<span class="text-slate-300">Không</span>';
-    let lh = '';
-    if (r.has_shopping) {
-      let tl = r.shopping_links.filter(i => i.platform === 'Shopee' || i.platform === 'Lazada');
-      if (tl.length > 0) {
-        const items = tl.map(i => {
-          let bc = i.platform === 'Shopee'
-            ? 'text-orange-500 bg-orange-50 border-orange-200'
-            : 'text-blue-600 bg-blue-50 border-blue-200';
-          return `<li class="mb-2 text-[13px] border-b border-indigo-50 pb-2 flex items-center gap-2"><span class="font-extrabold text-[10px] uppercase px-2 py-1 rounded border ${bc}">${i.platform}</span><a href="${i.clean_url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 truncate block w-full">${i.clean_url}</a></li>`;
-        }).join('');
-        lh = `<div class="px-6 py-2"><button class="toggle-btn w-full bg-indigo-50 text-indigo-600 font-extrabold py-3 px-4 rounded-2xl border border-indigo-100 text-xs shadow-sm">Giỏ hàng: ${tl.length} SP ▼</button><ul class="link-list hidden mt-3 p-5 bg-white rounded-2xl border border-indigo-100 text-left custom-scrollbar overflow-y-auto max-h-48 shadow-xl">${items}</ul></div>`;
-      } else {
-        lh = `<span class="text-slate-400 text-sm font-medium">${r.other_count} Sản phẩm khác</span>`;
-      }
-    } else {
-      lh = '<span class="text-slate-300">Trống</span>';
-    }
-    tr.innerHTML = `<td class="text-center text-sm text-slate-500 border-r border-indigo-50">${r.display_date}</td><td class="text-sm px-8 truncate border-r border-indigo-50 text-slate-400 font-medium"><a href="${r.url}" target="_blank">${r.url}</a></td><td class="text-center border-r border-indigo-50 text-xs uppercase font-black ${tc}">${r.type}</td><td class="text-center text-sm border-r border-indigo-50">${sh}</td><td class="text-center w-full">${lh}</td>`;
-    tb.appendChild(tr);
+    tr.className = "res-row";
+    tr.innerHTML = `<td class="text-center text-sm text-slate-500 border-r border-indigo-50">${r.display_date}</td><td class="text-sm px-8 truncate border-r border-indigo-50 text-slate-400 font-medium"><a href="${r.url}" target="_blank">${r.url}</a></td><td class="text-center border-r border-indigo-50 text-xs uppercase font-black ${buildTypeClass(r.type)}">${r.type}</td><td class="text-center text-sm border-r border-indigo-50">${buildShoppingBadge(r.has_shopping)}</td><td class="text-center w-full">${buildLinkCell(r)}</td>`;
     const btn = tr.querySelector('.toggle-btn');
     if (btn) btn.onclick = () => btn.nextElementSibling.classList.toggle('hidden');
+    fragment.appendChild(tr);
   });
+  tb.innerHTML = '';
+  tb.appendChild(fragment);
 }
 
 // ─── Scan Button ──────────────────────────────────────────────
@@ -327,12 +420,12 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   }
 
   const u = document.getElementById('linksInput').value.split('\n').map(v => v.trim()).filter(v => v !== '');
-  const s = document.getElementById('startDate').value;
-  const e = document.getElementById('endDate').value;
+  const s = startDateVal;
+  const e = endDateVal;
   if (!s || !e) return showMeoUAlert('Vui lòng chọn ngày!');
   if (u.length === 0) return showMeoUAlert('Chưa dán link!');
-  if (isBatchMode && u.length > 100) {
-    return showMeoUAlert(`Cho Mèo thở với, scan 100 kênh một lần thôi. Hiện tại là ${u.length} kênh`);
+  if (isBatchMode && u.length > 10) {
+    return showMeoUAlert(`Cho Mèo thở với, scan 10 kênh một lần thôi. Hiện tại là ${u.length} kênh`);
   }
   if (!isBatchMode && u.length > 1) {
     return showMeoUAlert('Chế độ Scan Từng Kênh chỉ cho phép 1 link!');
@@ -355,6 +448,7 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   document.getElementById('resultTableBody').innerHTML = '';
   document.getElementById('exportBtn').classList.add('hidden');
   document.getElementById('saveTempBtn').classList.add('hidden');
+  document.getElementById('emptyState')?.classList.add('hidden');
   isCurrentSaved = false;
 
   if (u.length > 1) updateBatchProgress(0, u.length);
@@ -404,12 +498,19 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
           } else if (data.type === 'progress') {
             const fill = document.getElementById('scanProgressFill');
             const label = document.getElementById('scanProgressLabel');
-            if (label && label.className === 'waiting-text') {
-               fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
-               label.innerHTML = 'Tiến Trình';
-               label.className = 'shimmer-text';
+            // Khi có dữ liệu thật (total > 0): reset pulse và chuyển sang thanh tiến trình thật
+            if (data.total > 0 && label) {
+              if (label.textContent.includes('kết nối') || label.className === 'waiting-text') {
+                label.innerHTML = 'Tiến Trình';
+                label.className = 'shimmer-text';
+              }
+              fill.style.background = 'linear-gradient(90deg,#a18cd1,#8ec5fc)';
             }
-            updateProgressBar(data.done, data.total);
+            if (u.length > 1) {
+              updateBatchProgress(data.done, data.total);
+            } else {
+              updateProgressBar(data.done, data.total);
+            }
           } else if (data.type === 'result') {
             currentData = data;
           }
@@ -417,15 +518,19 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
       }
     }
 
+
+
     // Xử lý kết quả cuối cùng
     if (currentData.cancelled) {
       showMeoUAlert('Đã ngừng quét!');
+      document.getElementById('emptyState')?.classList.remove('hidden');
     } else if (currentData.results && currentData.results.length > 0) {
       document.getElementById('exportBtn').classList.remove('hidden');
       document.getElementById('saveTempBtn').classList.remove('hidden');
       renderResults(currentData.results);
     } else {
       showMeoUAlert('Không tìm thấy video!');
+      document.getElementById('emptyState')?.classList.remove('hidden');
     }
 
   } catch (err) {
@@ -438,8 +543,7 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   } finally {
     clearInterval(loadingInterval);
     lD.classList.add('hidden');
-    updateBatchProgress(0, 0);
-    updateProgressBar(0, 0);
+    hideProgressBar();
     setScanningState(false);
     scanAbortController = null;
   }
@@ -475,5 +579,4 @@ themeToggle.addEventListener('click', () => {
     localStorage.setItem('theme', 'light');
   }
 });
-
 

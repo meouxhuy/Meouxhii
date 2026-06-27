@@ -28,11 +28,40 @@ for key, value in os.environ.items():
         if password:
             USERS[value] = password
 
+# ── Display name mapping: email -> display_name ────────────────────────
+def _load_display_names():
+    """Parse displayname.txt and build {email: display_name} dict."""
+    mapping = {}
+    txt_path = os.path.join(os.path.dirname(__file__), 'displayname.txt')
+    if not os.path.exists(txt_path):
+        return mapping
+    try:
+        with open(txt_path, encoding='utf-8') as f:
+            content = f.read()
+        emails = re.findall(r'USER_EMAIL_\d+="([^"]+)"', content)
+        names  = re.findall(r'DISPLAY_NAME_\d+="([^"]+)"', content)
+        for email, name in zip(emails, names):
+            mapping[email.strip()] = name.strip()
+    except Exception as e:
+        print(f"[WARN] Could not load displayname.txt: {e}")
+    return mapping
+
+DISPLAY_NAMES = _load_display_names()
+
 ECOMMERCE_DOMAINS = r'(?:shopee\.vn|shope\.ee|lazada\.vn|lzd\.co|tiktok\.com|tiki\.vn|ti\.ki|joyme|s\.shopee\.vn)'
 LINK_PATTERNS = [
-    re.compile(r'https?://[^\s"\'<>\\{}]*' + ECOMMERCE_DOMAINS + r'[^\s"\'<>\\{}]*'),
-    re.compile(r'https(?:%3A|:|\\u00253A)[^\s"\'<>\\{}]*' + ECOMMERCE_DOMAINS + r'[^\s"\'<>\\{}]*')
+    re.compile(r'https?://[^\s"\'\'<>\\{}]*' + ECOMMERCE_DOMAINS + r'[^\s"\'\'<>\\{}]*'),
+    re.compile(r'https(?:%3A|:|\\u00253A)[^\s"\'\'<>\\{}]*' + ECOMMERCE_DOMAINS + r'[^\s"\'\'<>\\{}]*')
 ]
+
+# ── Pre-compiled regex patterns (module-level, compiled once at startup) ──
+_RE_META     = re.compile(r'<meta[^>]*>')
+_RE_TEXT     = re.compile(r'"text"\s*:\s*"(?:[^"\\]|\\.)*"')
+_RE_CONTENT  = re.compile(r'"content"\s*:\s*"(?:[^"\\]|\\.)*"')
+_RE_SIMPLE   = re.compile(r'"simpleText"\s*:\s*"(?:[^"\\]|\\.)*"')
+_RE_SHOP_ID  = re.compile(r'"shoppingId"\s*:\s*"([^"]{5,30})"')
+_RE_MERCHANT = re.compile(r'"merchantName"\s*:\s*"([^"]+)"')
+_RE_RENDERER = re.compile(r'"(?:merchShelfItemRenderer|shoppingCarouselItemRenderer|productListItemRenderer)"')
 
 # ── Cancel flag registry: user_email -> threading.Event ──────────────
 SCAN_CANCEL_FLAGS: dict[str, threading.Event] = {}
@@ -208,10 +237,11 @@ def parse_video_html(html_content, video_data):
     clean_html = html_content
     
     # LỚP BẢO VỆ 1: Tiêu huỷ văn bản thô.
-    clean_html = re.sub(r'<meta[^>]*>', '', clean_html)
-    clean_html = re.sub(r'"text"\s*:\s*"(?:[^"\\]|\\.)*"', '""', clean_html)
-    clean_html = re.sub(r'"content"\s*:\s*"(?:[^"\\]|\\.)*"', '""', clean_html)
-    clean_html = re.sub(r'"simpleText"\s*:\s*"(?:[^"\\]|\\.)*"', '""', clean_html)
+    # Dùng pre-compiled patterns (module-level) thay vì compile lại mỗi lần gọi hàm
+    clean_html = _RE_META.sub('', clean_html)
+    clean_html = _RE_TEXT.sub('""', clean_html)
+    clean_html = _RE_CONTENT.sub('""', clean_html)
+    clean_html = _RE_SIMPLE.sub('""', clean_html)
 
     raw_links = {}
     for p in LINK_PATTERNS:
@@ -222,9 +252,9 @@ def parse_video_html(html_content, video_data):
                 
     ecommerce_items = [{"clean_url": k, "platform": v} for k, v in raw_links.items()]
     
-    unique_ids = set(re.findall(r'"shoppingId"\s*:\s*"([^"]{5,30})"', clean_html))
-    json_merchants = re.findall(r'"merchantName"\s*:\s*"([^"]+)"', clean_html)
-    has_renderers = bool(re.search(r'"(?:merchShelfItemRenderer|shoppingCarouselItemRenderer|productListItemRenderer)"', clean_html))
+    unique_ids = set(_RE_SHOP_ID.findall(clean_html))
+    json_merchants = _RE_MERCHANT.findall(clean_html)
+    has_renderers = bool(_RE_RENDERER.search(clean_html))
     
     has_native_shopping = bool(unique_ids) or bool(json_merchants) or has_renderers
     
@@ -337,7 +367,7 @@ async def process_all_urls(urls, start_date, end_date, cancel_flag=None, progres
         "X-Forwarded-For": f"14.161.{random.randint(1,255)}.{random.randint(1,255)}" # Giả mạo IP VN (dải của VNPT)
     }
     
-    connector = aiohttp.TCPConnector(limit=100)
+    connector = aiohttp.TCPConnector(limit=20)  # Khớp với semaphore(15) + buffer nhỏ
     async with aiohttp.ClientSession(headers=headers, connector=connector) as session_http:
         for u in urls:
             if cancel_flag and cancel_flag.is_set():
@@ -416,9 +446,10 @@ async def process_all_urls(urls, start_date, end_date, cancel_flag=None, progres
 @app.route('/')
 @login_required
 def index():
-    username = session['user'].split('@')[0]
-    is_admin = True
-    return render_template('index.html', user=session['user'], username=username, is_admin=is_admin)
+    email = session['user']
+    username = DISPLAY_NAMES.get(email, email.split('@')[0])
+    # Mở khoá toàn bộ tính năng cho tất cả người dùng
+    return render_template('index.html', user=email, username=username, is_admin=True)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -469,9 +500,11 @@ def scan_links():
             # Đang có người khác chạy -> Báo đang chờ
             waiting_for = current_scanning_user.get("username", "ai đó")
             progress_queue.put({"type": "waiting", "waiting_for": waiting_for})
-        
+
         # Dừng ở đây cho đến khi lấy được chìa khóa (hoặc block)
         scan_lock.acquire()
+        # --- Tách thành try riêng sau khi acquire() đã thành công ---
+        # để finally luôn gọi release() đúng cặp với acquire() đã hoàn thành
         try:
             # Nếu user đã ấn "Ngừng Quét" trong lúc đang xếp hàng
             if cancel_flag.is_set():
@@ -486,10 +519,12 @@ def scan_links():
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            scanned_results, final_channel_name = loop.run_until_complete(
-                process_all_urls(urls, start_date, end_date, cancel_flag, progress_queue)
-            )
-            loop.close()
+            try:
+                scanned_results, final_channel_name = loop.run_until_complete(
+                    process_all_urls(urls, start_date, end_date, cancel_flag, progress_queue)
+                )
+            finally:
+                loop.close()
 
             if cancel_flag.is_set():
                 progress_queue.put({"type": "result", "results": [], "channel_name": "Đã hủy", "cancelled": True})

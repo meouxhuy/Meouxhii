@@ -59,6 +59,7 @@ const loadingMessages = [
   "Không ai có thể lợi dụng được bạn... nếu bạn vô dụng.",
   "Không thiếu gì cả, chỉ thiếu nợ.",
   "Cái gì tôi cũng biết, chỉ không biết mắc cỡ",
+  "Lương có 5 triệu mà sếp giao việc như lương 50 triệu...",
   "Đi làm vì đam mê: đam mê về đúng giờ và nói xấu đồng nghiệp.",
   "Áp lực tạo kim cương, nhưng em chỉ thích vàng nên xin phép không chịu áp lực",
   "Đăng ảnh không cap vì nhan sắc tự nó đã là nội dung."

@@ -1,37 +1,118 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeoU Scan - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/css/login.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeoU Scan — Đăng Nhập</title>
+  <meta name="description" content="Đăng nhập vào MeoU Scan — Công cụ phát hiện giỏ hàng YouTube Shopping.">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/icon16.png">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wdth,wght@75..125,300..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/login.css">
 </head>
 <body>
-    <div class="login-card">
-        <div class="mb-8">
-            <h2 class="text-3xl font-extrabold text-[#5a54a4]">MeoU Scan</h2>
-            <p class="text-[#5a54a4]/60 font-bold text-sm">Vui lòng đăng nhập để tiếp tục</p>
-        </div>
-        
-        <form id="loginForm">
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" id="email" placeholder="meou@example.com" required>
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
-            </div>
-            <button type="submit" class="login-btn" id="submitBtn">
-                <span class="loader" id="loader"></span>
-                <span>Sign In</span>
-            </button>
-            <p id="errorMessage" class="error-msg"></p>
-        </form>
-    </div>
 
-    <script src="/static/js/login.js"></script>
+  <!-- Animated orb background -->
+  <div class="bg-scene" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="orb orb-5"></div>
+    <div class="orb orb-6"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Login card -->
+  <main class="stage">
+    <div class="card" id="loginCard">
+
+      <!-- Logo + Brand -->
+      <div class="brand">
+        <div class="logo-wrap">
+          <img src="/static/icons/icon64.png" alt="MeoU Logo" class="logo-img">
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">MeoU Scan</h1>
+          <p class="brand-sub">A Product of MeoU Studio</p>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="card-divider">
+        <span class="divider-line"></span>
+        <span class="divider-label">✦ Đăng nhập ✦</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" autocomplete="off" novalidate>
+
+        <div class="field-group" id="fieldEmail">
+          <label for="email" class="field-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m2 7 10 7 10-7"/></svg>
+            Email
+          </label>
+          <div class="field-wrap">
+            <input type="email" id="email" name="email" class="field-inp" placeholder="meou@example.com" required autocomplete="email">
+            <span class="field-focus-ring"></span>
+          </div>
+        </div>
+
+        <div class="field-group" id="fieldPassword">
+          <label for="password" class="field-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Mật khẩu
+          </label>
+          <div class="field-wrap">
+            <input type="password" id="password" name="password" class="field-inp" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="eye-btn" id="eyeBtn" aria-label="Hiện/Ẩn mật khẩu">
+              <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+            <span class="field-focus-ring"></span>
+          </div>
+        </div>
+
+        <!-- Error message -->
+        <div class="error-box" id="errorBox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="errorText">Email hoặc mật khẩu sai!</span>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span class="btn-content" id="btnContent">
+            <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Đăng Nhập
+          </span>
+          <span class="btn-loading hidden" id="btnLoading">
+            <span class="spin-ring"></span>
+            Đang xác thực...
+          </span>
+          <div class="btn-shimmer"></div>
+        </button>
+
+      </form>
+
+      <!-- Footer note -->
+      <p class="card-footer">Version 1.32.0 (2026-06-28)</p>
+
+    </div>
+  </main>
+
+  <script src="/static/js/login.js"></script>
+  <script>
+    // Eye toggle
+    const eyeBtn = document.getElementById('eyeBtn');
+    const pwdInp = document.getElementById('password');
+    const eyeOpen = document.getElementById('eyeOpen');
+    const eyeClosed = document.getElementById('eyeClosed');
+    eyeBtn.addEventListener('click', () => {
+      const show = pwdInp.type === 'password';
+      pwdInp.type = show ? 'text' : 'password';
+      eyeOpen.classList.toggle('hidden', show);
+      eyeClosed.classList.toggle('hidden', !show);
+    });
+  </script>
 </body>
 </html>

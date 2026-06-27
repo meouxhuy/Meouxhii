@@ -1,0 +1,62 @@
+USER_EMAIL_1="meouscanv1@gmail.com"
+DISPLAY_NAME_1="Huy Phan"
+
+USER_EMAIL_2="hoangan.huynhle.sc@shopeemobile-external.com"
+DISPLAY_NAME_2="Hoang An"
+
+USER_EMAIL_3="tuyetngan.nguyen.sc@shopeemobile-external.com"
+DISPLAY_NAME_3="Tuyet Ngan"
+
+USER_EMAIL_4="nguyet.nguyen.sc@shopeemobile-external.com"
+DISPLAY_NAME_4="Nguyen Nguyet"
+
+USER_EMAIL_5="thanhhoa.thach.sc@shopeemobile-external.com"
+DISPLAY_NAME_5="Thanh Hoa"
+
+USER_EMAIL_6="phuongnhung.nhu.sc@shopeemobile-external.com"
+DISPLAY_NAME_6="Phuong Nhung"
+
+USER_EMAIL_7="thiminhthu.le.sc@shopeemobile-external.com"
+DISPLAY_NAME_7="Thi Minh Thu"
+
+USER_EMAIL_8="tienminh.pham.sc@shopeemobile-external.com"
+DISPLAY_NAME_8="Tien Minh"
+
+USER_EMAIL_9="hanhu.nguyen.sc@shopeemobile-external.com"
+DISPLAY_NAME_9="Ha Nhu"
+
+USER_EMAIL_10="kimthanh.nguyen.sc@shopeemobile-external.com"
+DISPLAY_NAME_10="Kim Thanh"
+
+USER_EMAIL_11="binh.phamduy.sc@shopeemobile-external.com"
+DISPLAY_NAME_11="Pham Binh"
+
+USER_EMAIL_12="minhthu.vo.sc@shopeemobile-external.com"
+DISPLAY_NAME_12="Minh Thu"
+
+USER_EMAIL_13="ngocthao.nguyen.sc@shopeemobile-external.com"
+DISPLAY_NAME_13="Ngoc Thao"
+
+USER_EMAIL_14="levy.do.sc@shopeemobile-external.com"
+DISPLAY_NAME_14="Le Vy"
+
+USER_EMAIL_15="hoaian.tran.sc@shopeemobile-external.com"
+DISPLAY_NAME_15="Hoai An"
+
+USER_EMAIL_16="kimdung.hoang.sc@shopeemobile-external.com"
+DISPLAY_NAME_16="Kim Dung"
+
+USER_EMAIL_17="khavy.truong.sc@shopeemobile-external.com"
+DISPLAY_NAME_17="Kha Vy"
+
+USER_EMAIL_18="giahue.chau.sc@shopeemobile-external.com"
+DISPLAY_NAME_18="Gia Hue"
+
+USER_EMAIL_19="kieulan.nguyenthi.sc@shopeemobile-external.com"
+DISPLAY_NAME_19="Kieu Lan"
+
+USER_EMAIL_20="tuyettrinh.trankim.sc@shopeemobile-external.com"
+DISPLAY_NAME_20="Tuyet Trinh"
+
+USER_EMAIL_21="thuuyen.nguyen@meou.com"
+DISPLAY_NAME_21="Thu Ngơ"
