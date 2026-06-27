@@ -472,9 +472,16 @@ body.dark-mode .pl__ring { stroke: hsla(0,10%,90%,0.1); }
   -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
   padding: 12px !important;
   transform-origin: top center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
 }
 
 .-active-.air-datepicker {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
   animation: glassPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
