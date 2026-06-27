@@ -243,21 +243,6 @@ function createStarBurst(x, y) {
 }
 
 modeToggle.addEventListener('click', (e) => {
-  const isAdmin = document.body.getAttribute('data-is-admin') === 'true';
-  if (!isAdmin) {
-    const deniedOverlay = document.getElementById('permissionDeniedOverlay');
-    deniedOverlay.classList.remove('hidden');
-    setTimeout(() => {
-      deniedOverlay.classList.remove('opacity-0');
-      deniedOverlay.firstElementChild.classList.remove('scale-95');
-    }, 10);
-    setTimeout(() => {
-      deniedOverlay.classList.add('opacity-0');
-      deniedOverlay.firstElementChild.classList.add('scale-95');
-      setTimeout(() => deniedOverlay.classList.add('hidden'), 300);
-    }, 3000);
-    return;
-  }
   
   const overlay = document.getElementById('modeSwitchOverlay');
   overlay.classList.add('active');

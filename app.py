@@ -417,7 +417,7 @@ async def process_all_urls(urls, start_date, end_date, cancel_flag=None, progres
 @login_required
 def index():
     username = session['user'].split('@')[0]
-    is_admin = session['user'] in ["meouscanv1@gmail.com", "thuuyen.nguyen@meou.com"]
+    is_admin = True
     return render_template('index.html', user=session['user'], username=username, is_admin=is_admin)
 
 @app.route('/login', methods=['GET', 'POST'])
